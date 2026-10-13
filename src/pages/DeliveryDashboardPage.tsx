@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Truck,
   Clock,
@@ -60,6 +60,21 @@ export function DeliveryDashboardPage() {
   }
 
   useEffect(() => { load(); }, []);
+
+  // Realtime: live-sync orders when delivery_orders or delivery_order_items change
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const reloadRef = useRef(load);
+  reloadRef.current = load;
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('delivery-dashboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_orders' }, () => reloadRef.current())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_order_items' }, () => reloadRef.current())
+      .subscribe();
+    channelRef.current = channel;
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   async function updateStatus(orderId: string, status: DeliveryStatus) {
     await supabase.from('delivery_orders').update({ status_entrega: status }).eq('id', orderId);

@@ -32,6 +32,7 @@ function AppContent() {
 
   useEffect(() => {
     if (!session) return;
+
     async function checkAlerts() {
       const { data } = await supabase.from('ingredients').select('*');
       if (data) {
@@ -41,6 +42,7 @@ function AppContent() {
         setAlertCount(count);
       }
     }
+
     async function checkDeliveryPending() {
       const { data } = await supabase
         .from('delivery_orders')
@@ -50,9 +52,19 @@ function AppContent() {
         setDeliveryPendingCount((data as DeliveryOrder[]).length);
       }
     }
+
     checkAlerts();
     checkDeliveryPending();
-  }, [session, page]);
+
+    // Realtime: keep alert badge and delivery pending badge in sync
+    const channel = supabase
+      .channel('app-nav-badges-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ingredients' }, () => checkAlerts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_orders' }, () => checkDeliveryPending())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [session]);
 
   if (isPublicDelivery) {
     return <DeliveryPage />;

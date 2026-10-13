@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Flame,
   ShoppingCart,
@@ -62,6 +62,20 @@ export function DeliveryPage() {
       setLoading(false);
     }
     load();
+  }, []);
+
+  // Realtime: auto-refresh catalog when pizzas table changes (price, availability, new items)
+  const pizzasLoadedRef = useRef(false);
+  useEffect(() => {
+    const channel = supabase
+      .channel('delivery-catalog-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pizzas' }, async () => {
+        const { data } = await supabase.from('pizzas').select('*').eq('ativo', true).order('categoria, nome');
+        setPizzas((data ?? []) as Pizza[]);
+        pizzasLoadedRef.current = true;
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const categories = ['all', ...Array.from(new Set(pizzas.map((p) => p.categoria ?? 'Outros'))).sort()];

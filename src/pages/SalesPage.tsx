@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   ShoppingCart,
   Plus,
@@ -75,6 +75,19 @@ export function SalesPage() {
   }
 
   useEffect(() => { load(); }, []);
+
+  // Realtime: auto-refresh when delivery orders or sales change
+  const salesLoadRef = useRef(load);
+  salesLoadRef.current = load;
+  useEffect(() => {
+    const channel = supabase
+      .channel('sales-page-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_orders' }, () => salesLoadRef.current())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_order_items' }, () => salesLoadRef.current())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => salesLoadRef.current())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   function openNew() {
     setSelectedPizza('');
