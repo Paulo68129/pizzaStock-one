@@ -11,23 +11,29 @@ import {
   Menu,
   X,
   Flame,
+  Truck,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
-export type Page = 'dashboard' | 'ingredients' | 'pizzas' | 'sales' | 'analytics' | 'alerts' | 'forecast';
+export type Page = 'dashboard' | 'ingredients' | 'pizzas' | 'sales' | 'analytics' | 'alerts' | 'forecast' | 'delivery';
 
 interface LayoutProps {
   current: Page;
   onNavigate: (page: Page) => void;
   children: ReactNode;
   alertCount?: number;
+  deliveryPendingCount?: number;
 }
+
+
 
 const navItems: { id: Page; label: string; icon: ReactNode }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
   { id: 'ingredients', label: 'Estoque', icon: <Package size={18} /> },
   { id: 'pizzas', label: 'Cardápio', icon: <Pizza size={18} /> },
   { id: 'sales', label: 'Vendas', icon: <ShoppingCart size={18} /> },
+  { id: 'delivery', label: 'Delivery', icon: <Truck size={18} /> },
   { id: 'analytics', label: 'Análises', icon: <BarChart3 size={18} /> },
   { id: 'alerts', label: 'Alertas', icon: <Bell size={18} /> },
   { id: 'forecast', label: 'Previsão IA', icon: <Brain size={18} /> },
@@ -39,7 +45,7 @@ const perfilLabel: Record<string, string> = {
   atendente: 'Atendente',
 };
 
-export function Layout({ current, onNavigate, children, alertCount = 0 }: LayoutProps) {
+export function Layout({ current, onNavigate, children, alertCount = 0, deliveryPendingCount = 0 }: LayoutProps) {
   const { profile, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -76,9 +82,25 @@ export function Layout({ current, onNavigate, children, alertCount = 0 }: Layout
                   {alertCount}
                 </span>
               )}
+              {item.id === 'delivery' && deliveryPendingCount > 0 && (
+                <span className="ml-auto bg-brand-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {deliveryPendingCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>
+
+        <div className="px-3 pb-3">
+          <a
+            href="#delivery"
+            onClick={(e) => { e.preventDefault(); window.open(window.location.origin + '/#delivery', '_blank'); }}
+            className="nav-item w-full text-left text-brand-600 hover:bg-brand-50 hover:text-brand-700"
+          >
+            <ExternalLink size={18} />
+            <span>Página Pública de Delivery</span>
+          </a>
+        </div>
 
         <div className="px-3 py-4 border-t border-ink-100">
           <div className="flex items-center gap-3 px-2 py-2">
@@ -143,9 +165,24 @@ export function Layout({ current, onNavigate, children, alertCount = 0 }: Layout
                       {alertCount}
                     </span>
                   )}
+                  {item.id === 'delivery' && deliveryPendingCount > 0 && (
+                    <span className="ml-auto bg-brand-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {deliveryPendingCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </nav>
+            <div className="px-3 pb-3">
+              <a
+                href="#delivery"
+                onClick={(e) => { e.preventDefault(); window.open(window.location.origin + '/#delivery', '_blank'); }}
+                className="nav-item w-full text-left text-brand-600 hover:bg-brand-50 hover:text-brand-700"
+              >
+                <ExternalLink size={18} />
+                <span>Página Pública de Delivery</span>
+              </a>
+            </div>
             <div className="px-3 py-4 border-t border-ink-100">
               <div className="flex items-center gap-3 px-2">
                 <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-sm">

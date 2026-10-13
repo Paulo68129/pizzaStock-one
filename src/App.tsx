@@ -9,13 +9,26 @@ import { SalesPage } from '@/pages/SalesPage';
 import { AnalyticsPage } from '@/pages/AnalyticsPage';
 import { AlertsPage } from '@/pages/AlertsPage';
 import { ForecastPage } from '@/pages/ForecastPage';
+import { DeliveryPage } from '@/pages/DeliveryPage';
+import { DeliveryDashboardPage } from '@/pages/DeliveryDashboardPage';
 import { supabase } from '@/lib/supabase';
-import type { Ingredient } from '@/lib/types';
+import type { Ingredient, DeliveryOrder } from '@/lib/types';
 
 function AppContent() {
   const { session, loading } = useAuth();
   const [page, setPage] = useState<Page>('dashboard');
   const [alertCount, setAlertCount] = useState(0);
+  const [deliveryPendingCount, setDeliveryPendingCount] = useState(0);
+  const [isPublicDelivery, setIsPublicDelivery] = useState(false);
+
+  useEffect(() => {
+    function checkHash() {
+      setIsPublicDelivery(window.location.hash === '#delivery');
+    }
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, []);
 
   useEffect(() => {
     if (!session) return;
@@ -28,8 +41,22 @@ function AppContent() {
         setAlertCount(count);
       }
     }
+    async function checkDeliveryPending() {
+      const { data } = await supabase
+        .from('delivery_orders')
+        .select('status_entrega')
+        .eq('status_entrega', 'aguardando');
+      if (data) {
+        setDeliveryPendingCount((data as DeliveryOrder[]).length);
+      }
+    }
     checkAlerts();
+    checkDeliveryPending();
   }, [session, page]);
+
+  if (isPublicDelivery) {
+    return <DeliveryPage />;
+  }
 
   if (loading) {
     return (
@@ -47,11 +74,17 @@ function AppContent() {
   }
 
   return (
-    <Layout current={page} onNavigate={setPage} alertCount={alertCount}>
+    <Layout
+      current={page}
+      onNavigate={setPage}
+      alertCount={alertCount}
+      deliveryPendingCount={deliveryPendingCount}
+    >
       {page === 'dashboard' && <DashboardPage />}
       {page === 'ingredients' && <IngredientsPage />}
       {page === 'pizzas' && <PizzasPage />}
       {page === 'sales' && <SalesPage />}
+      {page === 'delivery' && <DeliveryDashboardPage />}
       {page === 'analytics' && <AnalyticsPage />}
       {page === 'alerts' && <AlertsPage />}
       {page === 'forecast' && <ForecastPage />}
