@@ -23,6 +23,10 @@ export interface Pizza {
   nome: string;
   preco: number;
   ativo: boolean;
+  descricao?: string;
+  categoria?: string;
+  imagem_url?: string;
+  destaque?: boolean;
   created_at: string;
 }
 
@@ -54,4 +58,52 @@ export interface RegisterSaleResult {
   sale_id?: string;
   valor_total?: number;
   custo_total?: number;
+}
+
+// ============================================================
+// Delivery module types
+// ============================================================
+
+export type DeliveryStatus = 'aguardando' | 'saiu_entrega' | 'entregue' | 'cancelado';
+
+export interface DeliveryOrderItem {
+  id: string;
+  pedido_id: string;
+  produto_id: string | null;
+  produto_nome: string;
+  descricao: string | null;
+  quantidade: number;
+  valor_unitario: number;
+  subtotal: number;
+}
+
+export interface DeliveryOrder {
+  id: string;
+  numero_pedido: number;
+  cliente_nome: string;
+  cliente_telefone: string;
+  cliente_endereco: string;
+  complemento: string | null;
+  bairro: string | null;
+  motoboy: string | null;
+  status_entrega: DeliveryStatus;
+  valor_total: number;
+  taxa_entrega: number;
+  data_pedido: string;
+  observacao: string | null;
+  items?: DeliveryOrderItem[];
+}
+
+export interface CreateDeliveryOrderResult {
+  error?: string;
+  success?: boolean;
+  order_id?: string;
+  numero_pedido?: number;
+  valor_total?: number;
+  data_pedido?: string;
+}
+
+export interface CartItem {
+  pizza: Pizza;
+  quantidade: number;
 }
