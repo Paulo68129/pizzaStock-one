@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Truck,
   Clock,
@@ -16,14 +16,18 @@ import {
   User,
   StickyNote,
   Bike,
+  CreditCard,
+  Banknote,
+  Smartphone,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { printOrder, exportPDF, exportCSV } from '@/lib/deliveryExport';
-import type { DeliveryOrder, DeliveryStatus } from '@/lib/types';
+import type { DeliveryOrder, DeliveryStatus, PaymentStatus } from '@/lib/types';
 
 const statusLabels: Record<DeliveryStatus, string> = {
   aguardando: 'Aguardando',
+  recebido: 'Recebido',
   saiu_entrega: 'Saiu para Entrega',
   entregue: 'Entregue',
   cancelado: 'Cancelado',
@@ -31,12 +35,25 @@ const statusLabels: Record<DeliveryStatus, string> = {
 
 const statusColors: Record<DeliveryStatus, string> = {
   aguardando: 'bg-amber-100 text-amber-700',
+  recebido: 'bg-blue-100 text-blue-700',
   saiu_entrega: 'bg-sky-100 text-sky-700',
   entregue: 'bg-emerald-100 text-emerald-700',
   cancelado: 'bg-red-100 text-red-700',
 };
 
-const statusOptions: DeliveryStatus[] = ['aguardando', 'saiu_entrega', 'entregue', 'cancelado'];
+const statusOptions: DeliveryStatus[] = ['aguardando', 'recebido', 'saiu_entrega', 'entregue', 'cancelado'];
+
+const paymentLabels: Record<string, string> = {
+  dinheiro: 'Dinheiro',
+  pix: 'Pix',
+  cartao: 'Cartão',
+};
+
+const paymentIcons: Record<string, typeof Banknote> = {
+  dinheiro: Banknote,
+  pix: Smartphone,
+  cartao: CreditCard,
+};
 
 export function DeliveryDashboardPage() {
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
@@ -61,8 +78,6 @@ export function DeliveryDashboardPage() {
 
   useEffect(() => { load(); }, []);
 
-  // Realtime: live-sync orders when delivery_orders or delivery_order_items change
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const reloadRef = useRef(load);
   reloadRef.current = load;
 
@@ -72,12 +87,16 @@ export function DeliveryDashboardPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_orders' }, () => reloadRef.current())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_order_items' }, () => reloadRef.current())
       .subscribe();
-    channelRef.current = channel;
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   async function updateStatus(orderId: string, status: DeliveryStatus) {
     await supabase.from('delivery_orders').update({ status_entrega: status }).eq('id', orderId);
+    load();
+  }
+
+  async function updatePaymentStatus(orderId: string, status: PaymentStatus) {
+    await supabase.from('delivery_orders').update({ status_pagamento: status, pago: status === 'pago' }).eq('id', orderId);
     load();
   }
 
@@ -230,6 +249,7 @@ export function DeliveryDashboardPage() {
         <div className="space-y-3">
           {filtered.map((order) => {
             const isExpanded = expandedId === order.id;
+            const PaymentIcon = order.forma_pagamento ? paymentIcons[order.forma_pagamento] : null;
             return (
               <div key={order.id} className="card overflow-hidden">
                 {/* Order header */}
@@ -246,11 +266,17 @@ export function DeliveryDashboardPage() {
                       <span className={`badge text-[10px] ${statusColors[order.status_entrega]}`}>
                         {statusLabels[order.status_entrega]}
                       </span>
+                      {order.pago && (
+                        <span className="badge text-[10px] bg-emerald-100 text-emerald-700">
+                          Pago
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-ink-400 flex items-center gap-2 mt-0.5">
                       <Clock size={11} />
                       {formatDateTime(order.data_pedido)}
                       {order.bairro && <span>• {order.bairro}</span>}
+                      {PaymentIcon && <span className="flex items-center gap-0.5"><PaymentIcon size={11} /> {paymentLabels[order.forma_pagamento!]}</span>}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -303,6 +329,29 @@ export function DeliveryDashboardPage() {
                       </div>
 
                       <div className="space-y-3">
+                        {/* Payment info */}
+                        <div>
+                          <label className="label flex items-center gap-1.5">
+                            <CreditCard size={14} /> Pagamento
+                          </label>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-sm text-ink-700 font-medium">
+                              {order.forma_pagamento ? paymentLabels[order.forma_pagamento] ?? order.forma_pagamento : 'Não informado'}
+                            </span>
+                            <span className={`badge text-[10px] ${order.status_pagamento === 'pago' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {order.status_pagamento === 'pago' ? 'Pago' : 'Pendente'}
+                            </span>
+                          </div>
+                          {order.status_pagamento !== 'pago' && (
+                            <button
+                              onClick={() => updatePaymentStatus(order.id, 'pago')}
+                              className="btn-primary text-xs py-1.5 px-3"
+                            >
+                              Marcar como Pago
+                            </button>
+                          )}
+                        </div>
+
                         {/* Motoboy assignment */}
                         <div>
                           <label className="label flex items-center gap-1.5">

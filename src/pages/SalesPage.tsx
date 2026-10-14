@@ -11,15 +11,19 @@ import {
   FileSpreadsheet,
   Truck,
   User,
+  Banknote,
+  CreditCard,
+  Smartphone,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Modal } from '@/components/Modal';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { printOrder, exportPDF, exportCSV } from '@/lib/deliveryExport';
-import type { Pizza, Sale, RegisterSaleResult, DeliveryOrder, DeliveryStatus, CreateDeliveryOrderResult } from '@/lib/types';
+import type { Pizza, Sale, RegisterSaleResult, DeliveryOrder, DeliveryStatus, PaymentMethod, CreateDeliveryOrderResult } from '@/lib/types';
 
 const statusLabels: Record<DeliveryStatus, string> = {
   aguardando: 'Aguardando',
+  recebido: 'Recebido',
   saiu_entrega: 'Saiu para Entrega',
   entregue: 'Entregue',
   cancelado: 'Cancelado',
@@ -27,12 +31,25 @@ const statusLabels: Record<DeliveryStatus, string> = {
 
 const statusColors: Record<DeliveryStatus, string> = {
   aguardando: 'bg-amber-100 text-amber-700',
+  recebido: 'bg-blue-100 text-blue-700',
   saiu_entrega: 'bg-sky-100 text-sky-700',
   entregue: 'bg-emerald-100 text-emerald-700',
   cancelado: 'bg-red-100 text-red-700',
 };
 
-const statusOptions: DeliveryStatus[] = ['aguardando', 'saiu_entrega', 'entregue', 'cancelado'];
+const statusOptions: DeliveryStatus[] = ['aguardando', 'recebido', 'saiu_entrega', 'entregue', 'cancelado'];
+
+const paymentLabels: Record<string, string> = {
+  dinheiro: 'Dinheiro',
+  pix: 'Pix',
+  cartao: 'Cartão',
+};
+
+const paymentIcons: Record<string, typeof Banknote> = {
+  dinheiro: Banknote,
+  pix: Smartphone,
+  cartao: CreditCard,
+};
 const TAXA_ENTREGA = 6.0;
 
 export function SalesPage() {
@@ -56,6 +73,7 @@ export function SalesPage() {
   const [dEndereco, setDEndereco] = useState('');
   const [dMotoboy, setDMotoboy] = useState('');
   const [dObservacao, setDObservacao] = useState('');
+  const [dPagamento, setDPagamento] = useState<PaymentMethod>('dinheiro');
   const [dItems, setDItems] = useState<{ pizza: Pizza; quantidade: number }[]>([]);
   const [dSubmitting, setDSubmitting] = useState(false);
   const [dError, setDError] = useState<string | null>(null);
@@ -102,6 +120,7 @@ export function SalesPage() {
     setDItems([]);
     setDError(null);
     setDResult(null);
+    setDPagamento('dinheiro');
     setModalOpen(true);
   }
 
@@ -187,7 +206,9 @@ export function SalesPage() {
       p_bairro: null,
       p_observacao: dObservacao.trim() || null,
       p_taxa_entrega: TAXA_ENTREGA,
-      p_items: JSON.stringify(items),
+      p_items: items,
+      p_forma_pagamento: dPagamento,
+      p_status_pagamento: 'pago',
     });
 
     if (rpcError) {
@@ -404,6 +425,7 @@ export function SalesPage() {
                     <th className="px-5 py-3">Endereco</th>
                     <th className="px-5 py-3">Motoboy</th>
                     <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">Pagamento</th>
                     <th className="px-5 py-3">Total</th>
                     <th className="px-5 py-3">Data</th>
                     <th className="px-5 py-3 text-right">Acoes</th>
@@ -437,6 +459,16 @@ export function SalesPage() {
                             <option key={s} value={s}>{statusLabels[s]}</option>
                           ))}
                         </select>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1">
+                          {(() => {
+                            const Icon = order.forma_pagamento ? paymentIcons[order.forma_pagamento] : null;
+                            return Icon ? <Icon size={14} className="text-ink-400" /> : null;
+                          })()}
+                          <span className="text-xs text-ink-500">{order.forma_pagamento ? paymentLabels[order.forma_pagamento] ?? order.forma_pagamento : '—'}</span>
+                          {order.pago && <span className="badge text-[9px] bg-emerald-100 text-emerald-700 ml-1">Pago</span>}
+                        </div>
                       </td>
                       <td className="px-5 py-3.5 text-sm font-bold text-ink-800">{formatCurrency(Number(order.valor_total))}</td>
                       <td className="px-5 py-3.5 text-xs text-ink-400 whitespace-nowrap">{formatDateTime(order.data_pedido)}</td>
@@ -562,6 +594,14 @@ export function SalesPage() {
               <div>
                 <label className="label">Observacao do Pedido</label>
                 <input type="text" value={dObservacao} onChange={(e) => setDObservacao(e.target.value)} className="input" placeholder="Sem cebola, borda recheada..." />
+              </div>
+              <div>
+                <label className="label">Forma de Pagamento *</label>
+                <select value={dPagamento} onChange={(e) => setDPagamento(e.target.value as PaymentMethod)} className="input" required>
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="pix">Pix</option>
+                  <option value="cartao">Cartão</option>
+                </select>
               </div>
             </div>
 

@@ -64,7 +64,10 @@ export interface RegisterSaleResult {
 // Delivery module types
 // ============================================================
 
-export type DeliveryStatus = 'aguardando' | 'saiu_entrega' | 'entregue' | 'cancelado';
+export type DeliveryStatus = 'aguardando' | 'recebido' | 'saiu_entrega' | 'entregue' | 'cancelado';
+
+export type PaymentMethod = 'dinheiro' | 'cartao' | 'pix';
+export type PaymentStatus = 'pendente' | 'pago';
 
 export interface DeliveryOrderItem {
   id: string;
@@ -91,16 +94,24 @@ export interface DeliveryOrder {
   taxa_entrega: number;
   data_pedido: string;
   observacao: string | null;
+  forma_pagamento: string | null;
+  status_pagamento: PaymentStatus;
+  pago: boolean;
   items?: DeliveryOrderItem[];
 }
 
 export interface CreateDeliveryOrderResult {
   error?: string;
+  error_code?: string;
   success?: boolean;
   order_id?: string;
   numero_pedido?: number;
   valor_total?: number;
   data_pedido?: string;
+  item_count?: number;
+  forma_pagamento?: string;
+  status_pagamento?: string;
+  custo_total?: number;
 }
 
 export interface CartItem {

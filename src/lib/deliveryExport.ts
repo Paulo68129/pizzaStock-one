@@ -3,9 +3,16 @@ import { formatCurrency, formatDateTime } from './format';
 
 const statusLabels: Record<string, string> = {
   aguardando: 'Aguardando',
+  recebido: 'Recebido',
   saiu_entrega: 'Saiu para Entrega',
   entregue: 'Entregue',
   cancelado: 'Cancelado',
+};
+
+const paymentLabels: Record<string, string> = {
+  dinheiro: 'Dinheiro',
+  pix: 'Pix',
+  cartao: 'Cartão',
 };
 
 export function generatePrintHTML(order: DeliveryOrder): string {
@@ -93,6 +100,9 @@ ${item.descricao ? `Descrição:\n${item.descricao}\n` : ''}Valor: ${formatCurre
   <div class="section-title">STATUS:</div>
   <div class="field-value">${statusLabels[order.status_entrega] ?? order.status_entrega}</div>
 
+  <div class="section-title">PAGAMENTO:</div>
+  <div class="field-value">${order.forma_pagamento ? paymentLabels[order.forma_pagamento] ?? order.forma_pagamento : 'Não informado'} — ${order.status_pagamento === 'pago' ? 'Pago' : 'Pendente'}</div>
+
   <div class="divider"></div>
 
   <div class="total">TOTAL: ${formatCurrency(Number(order.valor_total))}</div>
@@ -154,6 +164,8 @@ export function exportCSV(orders: DeliveryOrder[]) {
     'Valor Total',
     'Motoboy',
     'Status da Entrega',
+    'Forma de Pagamento',
+    'Status do Pagamento',
   ];
 
   const rows: string[] = [headers.join(';')];
@@ -175,6 +187,8 @@ export function exportCSV(orders: DeliveryOrder[]) {
           formatCurrency(Number(order.valor_total)).replace(/[^\d.,]/g, ''),
           order.motoboy ?? '',
           statusLabels[order.status_entrega] ?? order.status_entrega,
+          order.forma_pagamento ? paymentLabels[order.forma_pagamento] ?? order.forma_pagamento : '',
+          order.status_pagamento === 'pago' ? 'Pago' : 'Pendente',
         ]
           .map((v) => String(v).replace(/;/g, ','))
           .join(';')
@@ -195,6 +209,8 @@ export function exportCSV(orders: DeliveryOrder[]) {
             Number(item.subtotal).toFixed(2),
             order.motoboy ?? '',
             statusLabels[order.status_entrega] ?? order.status_entrega,
+            order.forma_pagamento ? paymentLabels[order.forma_pagamento] ?? order.forma_pagamento : '',
+            order.status_pagamento === 'pago' ? 'Pago' : 'Pendente',
           ]
             .map((v) => String(v).replace(/;/g, ','))
             .join(';')
