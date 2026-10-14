@@ -13,6 +13,7 @@ import {
   Flame,
   Truck,
   ExternalLink,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
@@ -24,6 +25,7 @@ interface LayoutProps {
   children: ReactNode;
   alertCount?: number;
   deliveryPendingCount?: number;
+  onOpenSettings?: () => void;
 }
 
 
@@ -45,7 +47,7 @@ const perfilLabel: Record<string, string> = {
   atendente: 'Atendente',
 };
 
-export function Layout({ current, onNavigate, children, alertCount = 0, deliveryPendingCount = 0 }: LayoutProps) {
+export function Layout({ current, onNavigate, children, alertCount = 0, deliveryPendingCount = 0, onOpenSettings }: LayoutProps) {
   const { profile, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -92,6 +94,13 @@ export function Layout({ current, onNavigate, children, alertCount = 0, delivery
         </nav>
 
         <div className="px-3 pb-3">
+          <button
+            onClick={onOpenSettings}
+            className="nav-item w-full text-left text-ink-500 hover:bg-ink-50 hover:text-ink-700"
+          >
+            <Settings size={18} />
+            <span>Notificações</span>
+          </button>
           <a
             href="#delivery"
             onClick={(e) => { e.preventDefault(); window.open(window.location.origin + '/#delivery', '_blank'); }}
@@ -174,6 +183,13 @@ export function Layout({ current, onNavigate, children, alertCount = 0, delivery
               ))}
             </nav>
             <div className="px-3 pb-3">
+              <button
+                onClick={() => { onOpenSettings?.(); setMobileOpen(false); }}
+                className="nav-item w-full text-left text-ink-500 hover:bg-ink-50 hover:text-ink-700"
+              >
+                <Settings size={18} />
+                <span>Notificações</span>
+              </button>
               <a
                 href="#delivery"
                 onClick={(e) => { e.preventDefault(); window.open(window.location.origin + '/#delivery', '_blank'); }}
